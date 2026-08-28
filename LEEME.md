@@ -82,6 +82,32 @@ móvil y en el ordenador haría falta montarlo con PHP y MySQL en un hosting.
 
 Toca tu medalla, arriba a la izquierda, para abrir la ficha de perfil.
 
+### Peso
+
+La pestaña **Peso** tiene arriba un **"Pesas como un…"** con el sprite y el nombre de un Pokémon
+de peso parecido al tuyo, elegido entre los 25 más cercanos. **Cambia cada día** pero es el
+mismo durante todo el día (se elige con un hash de la fecha, no al azar en cada carga). Con
+79,4 kg salen cosas como Kommo-o, Carkol, Torkoal o Zoroark; en 30 días verás unos 18
+Pokémon distintos.
+
+Debajo, la **gráfica** de cómo va variando tu peso, con la diferencia respecto a la última
+pesada y respecto a la primera. Y el historial completo, donde puedes borrar registros sueltos.
+
+**Cuándo te lo pide:**
+
+- La primera vez que entras con una cuenta nueva.
+- Después, **una vez por semana, en un día y una hora que cambian cada vez**: entre 5 y 9 días
+  tras la última pesada (7,2 de media), a una hora aleatoria entre las 9 y las 21. Con el
+  tiempo va cayendo en los siete días de la semana.
+- Si le das a *Ahora no*, te lo vuelve a pedir en 3 horas, no a la semana siguiente.
+- Puedes anotarlo cuando quieras con el botón **ANOTAR PESO**.
+
+Un aviso importante: esto es una web, no una app nativa. **No te puede avisar con el móvil
+guardado en el bolsillo**; la pregunta te sale la próxima vez que abras GYMDEX después de la
+hora que le tocaba. Para notificaciones de verdad haría falta una app instalada.
+
+Solo se guarda un peso por día: si lo anotas dos veces el mismo día, se queda el último.
+
 ### Copia de seguridad
 
 Los datos viven en el `localStorage` del navegador. Si borras datos de navegación o cambias
@@ -132,9 +158,11 @@ css/styles.css       Estilos (las balls están dibujadas en CSS, sin imágenes)
 js/badges.js         Las 72 medallas de gimnasio en SVG, para las fotos de perfil
 js/app.js            Toda la lógica (cuentas, sesión, capturas, evoluciones)
 data/pokemon.json    1025 Pokémon: nombre en español, categoría, generación,
-                     etapa evolutiva, evoluciones y rareza (91 KB)
+                     etapa evolutiva, evoluciones, rareza y peso (99 KB)
+                     El peso (w) va en hectogramos: w:2350 son 235,0 kg
 sprites/normal/      1025 sprites  ·  sprites/shiny/  1025 sprites  (6,1 MB)
 tools/build-data.js  Regenera data/pokemon.json desde PokeAPI
+tools/add-weights.js Añade el peso (campo w, en hectogramos) a data/pokemon.json
 tools/get-sprites.js Descarga los sprites que falten
 tools/serve.js       Servidor local de pruebas
 ```
@@ -163,8 +191,10 @@ Tres claves en `localStorage`:
   //       fecha local     t = los 6 objetivos, m = monsters, cl = día cerrado
   box:  [ { u: 1, i: 25, sh: 0, d: "2026-08-27" } ],
   //        u = id único, i = nº Pokédex, sh = shiny, d = fecha de captura
-  dex:  { "25": { c: 1, s: 0 } }
+  dex:  { "25": { c: 1, s: 0 } },
   //              c = normal conseguido, s = shiny conseguido
+  weights: [ { d: "2026-08-27", kg: 78.5 } ],   // un registro por día
+  nextWeigh: 1788134400000                      // cuándo toca pesarse (epoch ms)
 }
 ```
 

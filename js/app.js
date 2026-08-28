@@ -53,7 +53,11 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 function blankState() {
-  return { v: 1, days: {}, box: [], dex: {}, candy: 0, uid: 1, monstersTotal: 0 };
+  return {
+    v: 1, days: {}, box: [], dex: {}, candy: 0, uid: 1, monstersTotal: 0,
+    weights: [],      // [{ d:'2026-08-27', kg:78.5 }] una entrada por día
+    nextWeigh: 0      // marca de tiempo del próximo aviso de pesarse
+  };
 }
 
 /* ------------------------------ CUENTAS -------------------------------- */
@@ -562,6 +566,274 @@ function renderDaySheet(k) {
   if (cb) cb.onclick = () => { closeSheet(); claimDay(k); };
 }
 
+/* ============================== VISTA: PESO ============================ */
+
+/* Una vez por semana, en un día y una hora que cambian cada vez.
+   Se pregunta la próxima vez que abras la app pasado ese momento: una web
+   estática no puede avisarte con el móvil cerrado. */
+function scheduleNextWeigh(desde) {
+  const d = new Date(desde || Date.now());
+  d.setDate(d.getDate() + 5 + Math.floor(Math.random() * 5));   // entre 5 y 9 días
+  d.setHours(9 + Math.floor(Math.random() * 13),                // entre las 9 y las 21
+    Math.floor(Math.random() * 60), 0, 0);
+  return d.getTime();
+}
+
+function weightList() {
+  return (S.weights || []).slice().sort((a, b) => a.d < b.d ? -1 : 1);
+}
+
+function currentWeight() {
+  const l = weightList();
+  return l.length ? l[l.length - 1].kg : null;
+}
+
+function recordWeight(kg) {
+  const k = todayKey();
+  const i = S.weights.findIndex(w => w.d === k);
+  if (i >= 0) S.weights[i].kg = kg; else S.weights.push({ d: k, kg });
+  S.nextWeigh = scheduleNextWeigh();
+  save();
+}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/* Pokémon de peso parecido. Rota cada día pero es estable dentro del mismo día. */
+function pokemonLikeMe(kg, fecha) {
+  const cands = DEX
+    .filter(p => typeof p.w === 'number' && p.w > 0)
+    .map(p => ({ p, dif: Math.abs(p.w / 10 - kg) }))
+    .sort((a, b) => a.dif - b.dif)
+    .slice(0, 25);
+  if (!cands.length) return null;
+  return cands[hashStr(fecha) % cands.length].p;
+}
+
+const kg1 = (n) => (Math.round(n * 10) / 10).toString().replace('.', ',');
+
+function weightChart(list) {
+  const W = 320, H = 168, L = 40, R = 12, T = 14, B = 26;
+  const kgs = list.map(p => p.kg);
+  let min = Math.min(...kgs), max = Math.max(...kgs);
+  if (max - min < 1.5) { const mid = (max + min) / 2; min = mid - 0.75; max = mid + 0.75; }
+  const margen = (max - min) * 0.18;
+  min -= margen; max += margen;
+
+  const ts = list.map(p => parseKey(p.d).getTime());
+  const t0 = ts[0], t1 = ts[ts.length - 1];
+  const span = Math.max(t1 - t0, 1);
+  const uno = list.length === 1;
+  const px = (t) => uno ? (L + W - R) / 2 : L + (W - L - R) * (t - t0) / span;
+  const py = (k) => T + (H - T - B) * (1 - (k - min) / (max - min));
+
+  const pts = list.map((p, i) => [px(ts[i]), py(p.kg)]);
+  const linea = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${L},${H - B} ${linea} ${pts[pts.length - 1][0].toFixed(1)},${H - B}`;
+
+  const rejilla = [0, 0.5, 1].map(f => {
+    const k = min + (max - min) * f;
+    const y = py(k);
+    return `<line x1="${L}" y1="${y.toFixed(1)}" x2="${W - R}" y2="${y.toFixed(1)}" ` +
+      'stroke="#26334f" stroke-width="1"/>' +
+      `<text x="${L - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="9" ` +
+      `fill="#8b9ac0" font-weight="700">${kg1(k)}</text>`;
+  }).join('');
+
+  const dias = (k) => { const d = parseKey(k); return `${d.getDate()}/${d.getMonth() + 1}`; };
+  const ejeX = uno
+    ? `<text x="${((L + W - R) / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="9" ` +
+      `fill="#8b9ac0" font-weight="700">${dias(list[0].d)}</text>`
+    : `<text x="${L}" y="${H - 8}" text-anchor="start" font-size="9" fill="#8b9ac0" ` +
+      `font-weight="700">${dias(list[0].d)}</text>` +
+      `<text x="${W - R}" y="${H - 8}" text-anchor="end" font-size="9" fill="#8b9ac0" ` +
+      `font-weight="700">${dias(list[list.length - 1].d)}</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de tu peso">` +
+    '<defs><linearGradient id="wgrad" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0" stop-color="#3f7ee8" stop-opacity=".45"/>' +
+    '<stop offset="1" stop-color="#3f7ee8" stop-opacity="0"/></linearGradient></defs>' +
+    rejilla +
+    (uno ? '' : `<polygon points="${area}" fill="url(#wgrad)"/>`) +
+    (uno ? '' : `<polyline points="${linea}" fill="none" stroke="#5c95f0" stroke-width="2.5" ` +
+      'stroke-linejoin="round" stroke-linecap="round"/>') +
+    pts.map((p, i) =>
+      `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" ` +
+      `r="${i === pts.length - 1 ? 5 : 3.2}" fill="${i === pts.length - 1 ? '#ffffff' : '#5c95f0'}" ` +
+      'stroke="#0d1220" stroke-width="2"/>').join('') +
+    ejeX + '</svg>';
+}
+
+function renderPeso() {
+  const list = weightList();
+  const kg = currentWeight();
+
+  // ---- "Pesas como un ..." ----
+  const hero = $('#likeHero');
+  if (kg === null) {
+    hero.innerHTML =
+      '<div class="lh-lead">Aún no te has pesado</div>' +
+      '<div class="lh-note" style="margin-top:10px">Anota tu peso y te digo a qué Pokémon<br>' +
+      'te pareces. Cambia cada día.</div>';
+    hero.style.removeProperty('--lhc');
+  } else {
+    const p = pokemonLikeMe(kg, todayKey());
+    hero.innerHTML =
+      '<div class="lh-lead">Pesas como un</div>' +
+      `<img class="lh-sprite" src="${sprite(p.i, false)}" alt="${p.n}">` +
+      `<div class="lh-name">${p.n}</div>` +
+      `<div class="lh-kg">Pesa ${kg1(p.w / 10)} kg · tú ${kg1(kg)} kg</div>` +
+      '<div class="lh-note">Cambia cada día</div>';
+    const col = { red:'238,75,75', blue:'63,126,232', yellow:'242,197,61', green:'47,213,126',
+      purple:'155,92,246', pink:'240,143,192', brown:'201,154,94', black:'120,130,150',
+      white:'200,210,230', gray:'139,154,192' }[p.c] || '63,126,232';
+    hero.style.setProperty('--lhc', `rgba(${col},.26)`);
+  }
+
+  // ---- gráfica ----
+  const chart = $('#wChart'), foot = $('#wFoot'), delta = $('#wDelta');
+  const head = chart.parentElement.querySelector('.chart-title');
+  if (!list.length) {
+    chart.innerHTML = '<div class="chart-empty">Sin datos todavía.<br>' +
+      '<small>La gráfica aparece con el primer peso.</small></div>';
+    delta.textContent = '';
+    delta.className = 'chart-delta';
+    foot.textContent = '';
+    head.innerHTML = 'Tu peso';
+  } else {
+    chart.innerHTML = weightChart(list);
+    head.innerHTML = `Tu peso<div class="w-now">${kg1(kg)} kg</div>`;
+    if (list.length > 1) {
+      const dif = kg - list[list.length - 2].kg;
+      const total = kg - list[0].kg;
+      delta.textContent = (dif > 0 ? '+' : dif < 0 ? '−' : '') + kg1(Math.abs(dif)) + ' kg';
+      delta.className = 'chart-delta ' + (dif < 0 ? 'down' : dif > 0 ? 'up' : '');
+      foot.textContent = `${list.length} registros · ` +
+        (total === 0 ? 'igual que al empezar'
+          : `${total < 0 ? '−' : '+'}${kg1(Math.abs(total))} kg desde el principio`);
+    } else {
+      delta.textContent = 'primer registro';
+      delta.className = 'chart-delta';
+      foot.textContent = 'Con dos registros ya verás la línea.';
+    }
+  }
+
+  // ---- próximo aviso ----
+  const n = $('#wNext');
+  if (!S.nextWeigh) {
+    n.textContent = '';
+  } else {
+    const d = new Date(S.nextWeigh);
+    n.textContent = S.nextWeigh <= Date.now()
+      ? 'Toca pesarse.'
+      : `Te lo volveré a pedir el ${DIAS[d.getDay()].toLowerCase()} ${d.getDate()} ` +
+        `de ${MESES[d.getMonth()].toLowerCase()} sobre las ${d.getHours()}:` +
+        String(d.getMinutes()).padStart(2, '0') + '.';
+  }
+
+  // ---- historial ----
+  const wl = $('#wList');
+  if (!list.length) {
+    wl.innerHTML = '<div class="claim-note" style="text-align:left">Todavía no hay registros.</div>';
+    return;
+  }
+  wl.innerHTML = list.slice().reverse().map((w, idx, arr) => {
+    const prev = arr[idx + 1];
+    const dif = prev ? w.kg - prev.kg : null;
+    const cls = dif === null || dif === 0 ? '' : dif < 0 ? 'down' : 'up';
+    const txt = dif === null ? '—'
+      : (dif > 0 ? '+' : dif < 0 ? '−' : '') + kg1(Math.abs(dif));
+    return '<div class="wrec">' +
+      `<span class="wrec-k">${kg1(w.kg)}</span>` +
+      `<span class="wrec-d">${longDate(w.d)}</span>` +
+      `<span class="wrec-v ${cls}">${txt}</span>` +
+      `<button class="wrec-x" data-wdel="${w.d}" aria-label="Borrar">×</button></div>`;
+  }).join('');
+
+  $$('#wList [data-wdel]').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.wdel;
+      const w = S.weights.find(x => x.d === k);
+      if (!confirm(`¿Borrar el registro de ${kg1(w.kg)} kg del ${longDate(k)}?`)) return;
+      S.weights = S.weights.filter(x => x.d !== k);
+      save();
+      renderPeso();
+    };
+  });
+}
+
+/* ------------------------ hoja de anotar el peso ----------------------- */
+
+function openWeighSheet(primeraVez) {
+  // si la cierras sin guardar, se reintenta dentro de 3 horas
+  S.nextWeigh = Date.now() + 3 * 3600 * 1000;
+  save();
+
+  const ultimo = currentWeight();
+  openSheet();
+  $('#sheetBody').innerHTML =
+    '<div class="sh-grab"></div>' +
+    '<div class="weigh-in">' +
+    `<div class="sh-name">${primeraVez ? '¿Cuánto pesas?' : 'Toca pesarse'}</div>` +
+    '<div class="sh-meta">' +
+    (primeraVez
+      ? 'Para arrancar la gráfica y decirte a qué Pokémon te pareces.'
+      : ultimo !== null
+        ? `La última vez fueron ${kg1(ultimo)} kg.`
+        : 'Anota tu peso para empezar la gráfica.') +
+    '</div>' +
+    `<input class="weigh-big" id="wIn" type="number" inputmode="decimal" step="0.1" ` +
+    `min="20" max="400" placeholder="0,0"${ultimo !== null ? ` value="${ultimo}"` : ''}>` +
+    '<div class="weigh-unit">kilogramos</div>' +
+    '<div class="sh-row">' +
+    '<button class="sh-btn" id="wLater">Ahora no</button>' +
+    '<button class="sh-btn pri" id="wSave">GUARDAR</button></div></div>';
+
+  const inp = $('#wIn');
+  setTimeout(() => { inp.focus(); inp.select(); }, 150);
+
+  $('#wSave').onclick = () => {
+    const v = parseFloat(String(inp.value).replace(',', '.'));
+    if (!isFinite(v) || v < 20 || v > 400) {
+      toast('Pon un peso entre 20 y 400 kg');
+      inp.focus();
+      return;
+    }
+    const antes = currentWeight();
+    recordWeight(Math.round(v * 10) / 10);
+    closeSheet();
+    const p = pokemonLikeMe(v, todayKey());
+    if (antes !== null && Math.abs(v - antes) >= 0.05) {
+      const dif = v - antes;
+      toast(`${dif < 0 ? '−' : '+'}${kg1(Math.abs(dif))} kg`, dif < 0 ? 'good' : '');
+    } else {
+      toast(p ? `Pesas como un ${p.n}` : 'Peso guardado', 'good');
+    }
+    go('peso');
+  };
+
+  $('#wLater').onclick = () => {
+    closeSheet();
+    toast('Vale, te lo pregunto más tarde');
+  };
+}
+
+/* ¿toca pesarse? se llama al entrar en una cuenta */
+function checkWeighDue() {
+  if (!ME) return;
+  if (!S.weights.length) {                    // primera vez que entra la cuenta
+    setTimeout(() => openWeighSheet(true), 700);
+    return;
+  }
+  if (!S.nextWeigh) { S.nextWeigh = scheduleNextWeigh(); save(); return; }
+  if (Date.now() >= S.nextWeigh) setTimeout(() => openWeighSheet(false), 700);
+}
+
+$('#wAdd').onclick = () => openWeighSheet(false);
+
 /* ============================== VISTA: CAJA ============================ */
 
 let boxFilter = 'all';
@@ -864,6 +1136,7 @@ function go(v) {
   window.scrollTo(0, 0);
   if (v === 'hoy') renderHoy();
   if (v === 'cal') renderCal();
+  if (v === 'peso') renderPeso();
   if (v === 'caja') renderBox();
   if (v === 'dex') renderDex();
 }
@@ -1037,6 +1310,7 @@ function enterAccount(acc) {
   hideGate();
   renderProfileChip();
   go('hoy');
+  checkWeighDue();
 }
 
 function logout() {
@@ -1193,6 +1467,7 @@ async function boot() {
     hideGate();
     renderProfileChip();
     go('hoy');
+    checkWeighDue();
   } else {
     showGate();
   }

@@ -92,6 +92,26 @@
     <div class="month-summary" id="monthSummary"></div>
   </section>
 
+  <!-- ================= PESO ================= -->
+  <section class="view" id="view-peso" hidden>
+    <div class="like-hero" id="likeHero"></div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <div class="chart-title">Tu peso</div>
+        <div class="chart-delta" id="wDelta"></div>
+      </div>
+      <div class="chart-wrap" id="wChart"></div>
+      <div class="chart-foot" id="wFoot"></div>
+    </div>
+
+    <button class="claim-btn ready" id="wAdd">ANOTAR PESO</button>
+    <div class="claim-note" id="wNext"></div>
+
+    <div class="sh-sec">Historial</div>
+    <div id="wList"></div>
+  </section>
+
   <!-- ================= CAJA ================= -->
   <section class="view" id="view-caja" hidden>
     <div class="box-head">
@@ -125,6 +145,7 @@
 <nav id="nav">
   <button class="nb on" data-v="hoy"><span class="nb-ic">⚡</span>Hoy</button>
   <button class="nb" data-v="cal"><span class="nb-ic">📅</span>Calendario</button>
+  <button class="nb" data-v="peso"><span class="nb-ic">⚖️</span>Peso</button>
   <button class="nb" data-v="caja"><span class="nb-ic">📦</span>Caja</button>
   <button class="nb" data-v="dex"><span class="nb-ic">📕</span>Pokédex</button>
 </nav>
