@@ -133,7 +133,22 @@ git remote add origin https://github.com/TU-USUARIO/gymdex.git && git branch -M 
 En el repo: **Settings → Pages → Source: Deploy from a branch → Branch: `main` / `(root)` → Save**.
 
 En un par de minutos estará en `https://TU-USUARIO.github.io/gymdex/`.
-Ábrela en el móvil y usa *Añadir a pantalla de inicio* para que se vea como una app.
+### Instalarla en el móvil
+
+**iPhone**: ábrela en **Safari** (con Chrome no aparece la opción), toca *Compartir* y luego
+*Añadir a pantalla de inicio*. Queda con el icono de Snorlax y el nombre GYMDEX, y al abrirla
+va a pantalla completa, sin barra de direcciones.
+
+**Android**: Chrome ofrece *Instalar aplicación* en su menú.
+
+Para cambiar el icono, sustituye la imagen y regenera los tamaños:
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools/make-icons.ps1 -Origen "C:\ruta\a\tu\imagen.jpg"
+```
+
+Debe ser cuadrada (si no, se recorta por el centro). Genera los cuatro PNG de `icons/`
+sobre fondo opaco, porque iOS no admite transparencia en el icono de inicio.
 
 Para actualizarla más adelante: `git add -A && git commit -m "cambios" && git push`.
 
@@ -153,7 +168,9 @@ el navegador bloquea la carga de `data/pokemon.json`.
 ## Estructura
 
 ```
-index.html           Pantalla de acceso + las 4 vistas: Hoy, Calendario, Caja, Pokédex
+index.html           Pantalla de acceso + las 5 vistas: Hoy, Calendario, Peso, Caja, Pokédex
+manifest.json        Nombre, colores e iconos para instalarla en el móvil
+icons/               apple-touch-icon 180, icon-192, icon-512 y favicon
 css/styles.css       Estilos (las balls están dibujadas en CSS, sin imágenes)
 js/badges.js         Las 72 medallas de gimnasio en SVG, para las fotos de perfil
 js/app.js            Toda la lógica (cuentas, sesión, capturas, evoluciones)
@@ -164,6 +181,7 @@ sprites/normal/      1025 sprites  ·  sprites/shiny/  1025 sprites  (6,1 MB)
 tools/build-data.js  Regenera data/pokemon.json desde PokeAPI
 tools/add-weights.js Añade el peso (campo w, en hectogramos) a data/pokemon.json
 tools/get-sprites.js Descarga los sprites que falten
+tools/make-icons.ps1 Regenera los iconos desde una imagen cuadrada
 tools/serve.js       Servidor local de pruebas
 ```
 
