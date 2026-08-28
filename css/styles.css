@@ -7,6 +7,7 @@
   --pix:'Press Start 2P', ui-monospace, monospace;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   --safeb:env(safe-area-inset-bottom,0px);
+  --safet:env(safe-area-inset-top,0px);   /* reloj y batería del iPhone */
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -19,13 +20,16 @@ img{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
 button{font-family:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input{font-family:inherit}
 .view{padding:12px 14px 24px;max-width:640px;margin:0 auto}
+/* hueco extra abajo para que el contenido no muera pegado al menú */
+#view-cal,#view-caja{padding-bottom:88px}
 [hidden]{display:none!important}
 
 /* ================= TOPBAR ================= */
 #topbar{
   position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
-  gap:8px;padding:10px 14px;background:rgba(13,18,32,.92);backdrop-filter:blur(12px);
+  gap:8px;padding:14px 14px 12px;background:rgba(13,18,32,.92);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--line);
+  padding-top:calc(14px + var(--safet));
 }
 .tb-brand{display:flex;align-items:center;gap:7px;min-width:0;flex:1;padding:2px 0}
 .tb-brand:active{opacity:.65}
@@ -308,7 +312,8 @@ body.locked #topbar,body.locked #app,body.locked #nav{display:none}
 
 #gate{position:fixed;inset:0;z-index:70;overflow-y:auto;
   background:radial-gradient(circle at 50% 12%,#1e2b4d,#0b0f1a 68%)}
-.gate-inner{max-width:420px;margin:0 auto;padding:38px 20px calc(30px + var(--safeb));
+.gate-inner{max-width:420px;margin:0 auto;
+  padding:calc(38px + var(--safet)) 20px calc(30px + var(--safeb));
   min-height:100%;display:flex;flex-direction:column;justify-content:center}
 .gate-logo{font-family:var(--pix);font-size:26px;text-align:center;letter-spacing:1px;
   background:linear-gradient(90deg,var(--pokeball),var(--ultraball),var(--masterball));
