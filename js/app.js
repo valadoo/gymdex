@@ -137,6 +137,7 @@ function load() {
   }
   const def = blankState();
   for (const k in def) if (S[k] === undefined) S[k] = def[k];
+  migrarRangos();
 }
 
 let saveTimer = null;
@@ -197,6 +198,32 @@ const RANK_MIN = [0, 1, 3, 5, 6];
 function rankOf(n) {
   for (let r = 4; r >= 1; r--) if (n >= RANK_MIN[r]) return r;
   return 0;
+}
+
+/* Escala de cuando había 6 objetivos, solo para convertir el historial. */
+const OLD_RANK = (n) => (n >= 4 ? 4 : n);
+
+/* Rango de un día. Los días ya cerrados conservan el que se les dio entonces,
+   así el calendario no se repinta cuando cambian las reglas. */
+function dayRank(k) {
+  const d = peek(k);
+  if (!d) return 0;
+  if (typeof d.r === 'number') return d.r;
+  return rankOf(d.t.reduce((a, b) => a + b, 0));
+}
+
+/* Congela el rango de los días cerrados antes de que existiera el campo r. */
+function migrarRangos() {
+  let n = 0;
+  for (const k in S.days) {
+    const d = S.days[k];
+    if (d.cl && typeof d.r !== 'number') {
+      d.r = OLD_RANK(d.t.reduce((a, b) => a + b, 0));
+      n++;
+    }
+  }
+  if (n) save();
+  return n;
 }
 
 function streak() {
@@ -326,7 +353,7 @@ function renderHoy() {
   const k = todayKey();
   const d = day(k);
   const n = doneCount(k);
-  const r = rankOf(n);
+  const r = dayRank(k);
   const rk = RANKS[r];
 
   $('#todayDate').textContent = longDate(k);
@@ -386,7 +413,7 @@ function renderPending() {
 function renderStats() {
   const keys = Object.keys(S.days);
   const activos = keys.filter(k => doneCount(k) > 0).length;
-  const master = keys.filter(k => rankOf(doneCount(k)) === 4).length;
+  const master = keys.filter(k => dayRank(k) === 4).length;
   const total = keys.reduce((a, k) => a + doneCount(k), 0);
 
   let hit = 0;
@@ -427,6 +454,7 @@ function claimDay(k) {
   const gained = candyFor(n, strk);
 
   d.cl = 1;
+  d.r = rank;              // se congela: este día ya no cambia de color nunca
   S.candy += gained;
   save();
 
@@ -500,7 +528,7 @@ function renderCal() {
     const k = `${y}-${pad(m + 1)}-${pad(n)}`;
     const d = peek(k);
     const c = d ? d.t.reduce((a, b) => a + b, 0) : 0;
-    const r = rankOf(c);
+    const r = dayRank(k);
     if (r) tally[r]++;
     const cls = ['cd'];
     if (r) cls.push('r' + r, 'filled');
@@ -535,7 +563,7 @@ function renderDaySheet(k) {
   const future = k > todayKey();
   const d = day(k);
   const n = doneCount(k);
-  const r = rankOf(n);
+  const r = dayRank(k);
 
   $('#sheetBody').innerHTML =
     '<div class="sh-grab"></div>' +

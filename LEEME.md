@@ -60,9 +60,14 @@ Cerrar un día da `objetivos × 5` caramelos, con multiplicador por racha:
 - 30 días o más: x2
 - Día Master Ball (6 o 7 objetivos): +10 extra
 
-Los días guardados antes de añadir un objetivo se rellenan solos con la casilla nueva a cero:
-no se pierde nada, pero sus rangos se recalculan con la escala actual, así que un día de 4
-objetivos que antes era Master Ball ahora sale como Super Ball.
+**El rango se congela al cerrar el día.** Una vez lanzada la ball, ese día guarda su rango en
+el campo `r` y ya no vuelve a cambiar de color aunque después toques los umbrales: el
+calendario es historia, no una foto de las reglas de hoy. Los días cerrados antes de que
+existiera ese campo se convirtieron con la escala que había entonces (1 Poké, 2 Super,
+3 Ultra, 4+ Master), así que conservan el color que tenían.
+
+Los días guardados antes de añadir un objetivo se rellenan solos con la casilla nueva a cero,
+sin perder ninguna marca.
 
 Los repetidos dan caramelos según su rareza (de 3 a 50, x3 si es shiny). Evolucionar cuesta
 **25 caramelos** a la primera etapa y **100** a la segunda, x3 si es legendario o mítico.
@@ -221,8 +226,9 @@ Tres claves en `localStorage`:
   candy: 0,              // caramelos
   uid: 1,                // contador de individuos de la caja
   monstersTotal: 0,
-  days: { "2026-08-27": { t: [1,0,1,1,0,0,1], m: 1, cl: 1 } },
-  //       fecha local     t = los 7 objetivos, m = monsters, cl = día cerrado
+  days: { "2026-08-27": { t: [1,0,1,1,0,0,1], m: 1, cl: 1, r: 3 } },
+  //       fecha local     t = los 7 objetivos, m = monsters, cl = día cerrado,
+  //                       r = rango que se le dio (queda congelado)
   box:  [ { u: 1, i: 25, sh: 0, d: "2026-08-27" } ],
   //        u = id único, i = nº Pokédex, sh = shiny, d = fecha de captura
   dex:  { "25": { c: 1, s: 0 } },
