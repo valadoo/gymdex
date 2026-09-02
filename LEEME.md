@@ -6,17 +6,29 @@ Web de objetivos diarios de gimnasio con temática Pokémon. Pensada para móvil
 
 ## Cómo funciona
 
-### Los 6 objetivos y el rango del día
+### Los 7 objetivos y el rango del día
 
 | Objetivos cumplidos | Rango | Color en el calendario |
 |---|---|---|
-| 1 | Poké Ball | Rojo |
-| 2 | Super Ball | Azul |
-| 3 | Ultra Ball | Amarillo |
-| 4, 5 o 6 | Master Ball | Morado |
+| 1 o 2 | Poké Ball | Rojo |
+| 3 o 4 | Super Ball | Azul |
+| 5 | Ultra Ball | Amarillo |
+| 6 o 7 | Master Ball | Morado |
 
-Los objetivos son: fuerza, carrera, natación, comer bien, suplementación y dormir +7 h.
-Cada uno lleva un tipo Pokémon asignado (Lucha, Volador, Agua, Planta, Veneno, Psíquico).
+Los siete objetivos, cada uno con su tipo Pokémon:
+
+| Objetivo | Tipo |
+|---|---|
+| 💪 Entreno de fuerza | Lucha |
+| 🏃 Entreno de carrera | Volador |
+| 🏊 Entreno de natación | Agua |
+| 🥗 Comer bien | Planta |
+| 💊 Tomar suplementación | Veneno |
+| 😴 Dormir +7 horas | Psíquico |
+| 👟 +10.000 pasos | Tierra |
+
+La Master Ball exige casi el día perfecto: 6 de 7. Si tocas `TASKS` para añadir o quitar
+objetivos, revisa también los umbrales en `RANK_MIN`.
 
 Al pulsar **LANZAR** se cierra el día, se lanza la ball con animación y aparece un Pokémon.
 Un día cerrado ya no se puede modificar. Si se te olvida cerrar un día, aparece en
@@ -46,7 +58,11 @@ Cerrar un día da `objetivos × 5` caramelos, con multiplicador por racha:
 - Menos de 7 días seguidos: x1
 - 7 días o más: x1,5
 - 30 días o más: x2
-- Día Master Ball: +10 extra
+- Día Master Ball (6 o 7 objetivos): +10 extra
+
+Los días guardados antes de añadir un objetivo se rellenan solos con la casilla nueva a cero:
+no se pierde nada, pero sus rangos se recalculan con la escala actual, así que un día de 4
+objetivos que antes era Master Ball ahora sale como Super Ball.
 
 Los repetidos dan caramelos según su rareza (de 3 a 50, x3 si es shiny). Evolucionar cuesta
 **25 caramelos** a la primera etapa y **100** a la segunda, x3 si es legendario o mítico.
@@ -205,8 +221,8 @@ Tres claves en `localStorage`:
   candy: 0,              // caramelos
   uid: 1,                // contador de individuos de la caja
   monstersTotal: 0,
-  days: { "2026-08-27": { t: [1,0,1,1,0,0], m: 1, cl: 1 } },
-  //       fecha local     t = los 6 objetivos, m = monsters, cl = día cerrado
+  days: { "2026-08-27": { t: [1,0,1,1,0,0,1], m: 1, cl: 1 } },
+  //       fecha local     t = los 7 objetivos, m = monsters, cl = día cerrado
   box:  [ { u: 1, i: 25, sh: 0, d: "2026-08-27" } ],
   //        u = id único, i = nº Pokédex, sh = shiny, d = fecha de captura
   dex:  { "25": { c: 1, s: 0 } },

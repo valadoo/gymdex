@@ -12,7 +12,8 @@ const TASKS = [
   { n: 'Entreno de natación',   ic: '🏊', ty: 'Agua',     c: '#4a90e2' },
   { n: 'Comer bien',            ic: '🥗', ty: 'Planta',   c: '#5ec46b' },
   { n: 'Tomar suplementación',  ic: '💊', ty: 'Veneno',   c: '#b45ac4' },
-  { n: 'Dormir +7 horas',       ic: '😴', ty: 'Psíquico', c: '#f06fa0' }
+  { n: 'Dormir +7 horas',       ic: '😴', ty: 'Psíquico', c: '#f06fa0' },
+  { n: '+10.000 pasos',         ic: '👟', ty: 'Tierra',   c: '#c9a06a' }
 ];
 
 const RANKS = [
@@ -183,12 +184,20 @@ function longDate(k) {
 /* -------------------------------- DÍAS --------------------------------- */
 
 function day(k) {
-  if (!S.days[k]) S.days[k] = { t: [0, 0, 0, 0, 0, 0], m: 0, cl: 0 };
-  return S.days[k];
+  if (!S.days[k]) S.days[k] = { t: [0, 0, 0, 0, 0, 0, 0], m: 0, cl: 0 };
+  const d = S.days[k];
+  // días guardados antes de añadir un objetivo nuevo vienen con menos casillas
+  while (d.t.length < TASKS.length) d.t.push(0);
+  return d;
 }
 function peek(k) { return S.days[k] || null; }
 function doneCount(k) { const d = peek(k); return d ? d.t.reduce((a, b) => a + b, 0) : 0; }
-function rankOf(n) { return n >= 4 ? 4 : n; }
+/* 1-2 Poké · 3-4 Super · 5 Ultra · 6-7 Master */
+const RANK_MIN = [0, 1, 3, 5, 6];
+function rankOf(n) {
+  for (let r = 4; r >= 1; r--) if (n >= RANK_MIN[r]) return r;
+  return 0;
+}
 
 function streak() {
   let n = 0;
@@ -201,7 +210,7 @@ function streak() {
 function candyFor(count, strk) {
   const mult = strk >= 30 ? 2 : strk >= 7 ? 1.5 : 1;
   let c = Math.round(count * 5 * mult);
-  if (count >= 4) c += 10;
+  if (rankOf(count) === 4) c += 10;   // bonus solo en día Master Ball
   return c;
 }
 
@@ -324,11 +333,11 @@ function renderHoy() {
   paintBall($('#todayBall'), rk.k, 'ball-big');
   $('#todayRank').textContent = rk.n;
   $('#todayRank').style.color = r ? rk.c : 'var(--dim)';
-  $('#todayCount').textContent = `${n} de 6 objetivos`;
+  $('#todayCount').textContent = `${n} de 7 objetivos`;
   document.documentElement.style.setProperty('--rc', rk.c);
 
   $('#rankTrack').innerHTML = [1, 2, 3, 4]
-    .map(i => `<div class="rt ${n >= i ? 'on' : ''}" style="--rc:${RANKS[i].c}"></div>`)
+    .map(i => `<div class="rt ${n >= RANK_MIN[i] ? 'on' : ''}" style="--rc:${RANKS[i].c}"></div>`)
     .join('');
 
   renderTasks(k, $('#taskList'), !!d.cl);
@@ -377,7 +386,7 @@ function renderPending() {
 function renderStats() {
   const keys = Object.keys(S.days);
   const activos = keys.filter(k => doneCount(k) > 0).length;
-  const master = keys.filter(k => doneCount(k) >= 4).length;
+  const master = keys.filter(k => rankOf(doneCount(k)) === 4).length;
   const total = keys.reduce((a, k) => a + doneCount(k), 0);
 
   let hit = 0;
@@ -409,7 +418,7 @@ function claimDay(k) {
   if (n === 0) return;
 
   if (k === todayKey() && !confirm(
-    `¿Cerrar el día con ${n} de 6 objetivos?\n\nRango: ${RANKS[rankOf(n)].n}\n` +
+    `¿Cerrar el día con ${n} de 7 objetivos?\n\nRango: ${RANKS[rankOf(n)].n}\n` +
     'Después ya no podrás marcar más objetivos de hoy.'
   )) return;
 
@@ -532,7 +541,7 @@ function renderDaySheet(k) {
     '<div class="sh-grab"></div>' +
     '<div class="sh-hero">' + ballHTML(RANKS[r].k, 'ball-big') +
     `<div class="sh-name" style="color:${r ? RANKS[r].c : 'var(--dim)'}">${RANKS[r].n}</div>` +
-    `<div class="sh-meta">${longDate(k)} · ${n} de 6 objetivos</div></div>` +
+    `<div class="sh-meta">${longDate(k)} · ${n} de 7 objetivos</div></div>` +
     (future
       ? '<div class="empty">Ese día aún no ha llegado.</div>'
       : '<div class="sh-sec">Objetivos</div><div class="daysheet-tasks" id="dsTasks"></div>' +
